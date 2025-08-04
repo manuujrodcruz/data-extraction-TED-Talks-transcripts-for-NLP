@@ -1,0 +1,38 @@
+=== RESUMEN DE MODELOS TED TALKS ===
+
+RESULTADOS DE EVALUACIÓN:
+--------------------------------------------------
+
+Random Forest:
+  Accuracy: 0.5000
+  Precision: 0.4274
+  Recall: 0.5000
+  F1-Score: 0.4526
+  AUC: 0.7708
+
+Gradient Boosting:
+  Accuracy: 0.9000
+  Precision: 0.9286
+  Recall: 0.9000
+  F1-Score: 0.8833
+  AUC: 0.9941
+
+Logistic Regression:
+  Accuracy: 0.6500
+  Precision: 0.5911
+  Recall: 0.6500
+  F1-Score: 0.5902
+  AUC: 0.8433
+
+SVM:
+  Accuracy: 0.5000
+  Precision: 0.4833
+  Recall: 0.5000
+  F1-Score: 0.4754
+  AUC: 0.7808
+
+MEJOR MODELO: Gradient Boosting
+F1-Score: 0.8833
+
+CARACTERÍSTICAS UTILIZADAS: 1015
+MODELOS ENTRENADOS: Random Forest, Gradient Boosting, Logistic Regression, SVM
