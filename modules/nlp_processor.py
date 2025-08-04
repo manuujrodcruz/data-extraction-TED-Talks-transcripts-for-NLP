@@ -8,6 +8,7 @@ import re
 from collections import Counter
 from textblob import TextBlob
 from tqdm.auto import tqdm
+from .progress_tracker import ProgressTracker, real_time_feedback
 
 try:
     import spacy
@@ -216,45 +217,58 @@ def process_text_features(df, text_column='transcript_clean', nlp_models=None):
     """
     Procesa todas las características de texto para un DataFrame
     """
-    print("=== PROCESANDO CARACTERÍSTICAS DE TEXTO ===")
-    print(f"Procesando columna: {text_column}")
+    # Inicializar tracker de progreso
+    tracker = ProgressTracker(total_steps=5, description="Procesamiento NLP")
+    tracker.start("Iniciando extracción de características NLP")
+    
+    real_time_feedback(f"Procesando columna: {text_column}")
     
     if text_column not in df.columns:
         print(f"⚠ Columna {text_column} no encontrada")
         return df
     
-    # Cargar modelos si no se proporcionan
+    # 1. CARGAR MODELOS
+    tracker.step("Cargando modelos de NLP")
     if nlp_models is None:
         nlp_models = load_nlp_models()
+        real_time_feedback("Modelos de NLP cargados")
     
-    # Procesar muestra primero
+    # 2. PREPARAR MUESTRA
+    tracker.step("Preparando muestra de datos")
     sample_size = min(100, len(df))
-    print(f"Procesando muestra de {sample_size} textos...")
-    
+    real_time_feedback(f"Procesando muestra de {sample_size} textos para velocidad...")
     sample_df = df.head(sample_size).copy()
     
-    # Procesar sentimientos
+    # 3. PROCESAR SENTIMIENTOS
+    tracker.step("Analizando sentimientos con TextBlob")
     sample_df = _process_sentiments(sample_df, text_column)
+    real_time_feedback("Análisis de sentimientos completado")
     
-    # Procesar características textuales
+    # 4. PROCESAR CARACTERÍSTICAS TEXTUALES
+    tracker.step("Extrayendo características textuales")
     sample_df = _process_text_features(sample_df, text_column, nlp_models)
+    real_time_feedback("Características textuales extraídas")
     
-    # Procesar entidades nombradas
+    # 5. PROCESAR ENTIDADES NOMBRADAS
+    tracker.step("Identificando entidades nombradas")
     if nlp_models['spacy'] is not None:
         sample_df = _process_named_entities(sample_df, text_column, nlp_models['spacy'])
+        real_time_feedback("Entidades nombradas identificadas")
+    else:
+        real_time_feedback("spaCy no disponible - omitiendo entidades nombradas")
     
-    # Mostrar estadísticas
+    # Mostrar estadísticas finales
     _show_feature_statistics(sample_df)
     
-    print("\n✓ Procesamiento de características completado")
+    tracker.finish("Procesamiento NLP completado")
     
     return sample_df
 
 
 def _process_sentiments(df, text_column):
     """Procesa análisis de sentimientos"""
-    print("1. Analizando sentimientos...")
-    tqdm.pandas(desc="Sentimientos")
+    real_time_feedback("Analizando polaridad y subjetividad...")
+    tqdm.pandas(desc="Sentimientos", leave=False)
     sentiment_results = df[text_column].progress_apply(analyze_sentiment)
     
     # Convertir resultados a columnas
@@ -267,8 +281,8 @@ def _process_sentiments(df, text_column):
 
 def _process_text_features(df, text_column, nlp_models):
     """Procesa características textuales básicas"""
-    print("2. Extrayendo características textuales...")
-    tqdm.pandas(desc="Características")
+    real_time_feedback("Calculando longitud, palabras, oraciones...")
+    tqdm.pandas(desc="Características", leave=False)
     text_features = df[text_column].progress_apply(
         lambda x: extract_text_features(x, nlp_models['stop_words'])
     )
@@ -283,11 +297,10 @@ def _process_text_features(df, text_column, nlp_models):
 
 def _process_named_entities(df, text_column, spacy_model):
     """Procesa entidades nombradas"""
-    print("3. Extrayendo entidades nombradas...")
     entity_sample_size = min(50, len(df))
-    print(f"Procesando {entity_sample_size} textos para entidades...")
+    real_time_feedback(f"Procesando {entity_sample_size} textos para entidades nombradas...")
     
-    tqdm.pandas(desc="Entidades")
+    tqdm.pandas(desc="Entidades", leave=False)
     entity_results = df[text_column].head(entity_sample_size).progress_apply(
         lambda x: extract_named_entities(x, spacy_model)
     )

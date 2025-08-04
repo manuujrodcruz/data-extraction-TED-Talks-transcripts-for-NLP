@@ -14,78 +14,131 @@ def install_package(package):
     try:
         package_name = package.split('==')[0].split('[')[0]
         __import__(package_name)
-        print(f"✓ {package} ya está instalado")
+        print(f"OK - {package} ya está instalado")
         return True
     except ImportError:
         try:
-            print(f"Instalando {package}...")
+            print(f"Instalando {package}...", end='', flush=True)
             result = subprocess.run(
                 [sys.executable, "-m", "pip", "install", package],
                 capture_output=True,
                 text=True,
-                timeout=60  # Timeout de 60 segundos
+                timeout=120  # Aumentar timeout a 120 segundos
             )
             if result.returncode == 0:
-                print(f"✓ {package} instalado correctamente")
+                print(" OK")
                 return True
             else:
-                print(f"⚠ Error instalando {package}: {result.stderr}")
+                print(f" ERROR: {result.stderr[:100]}...")
                 return False
         except subprocess.TimeoutExpired:
-            print(f"⚠ Timeout instalando {package}")
+            print(" TIMEOUT")
             return False
         except Exception as e:
-            print(f"⚠ Error instalando {package}: {e}")
+            print(f" ERROR: {str(e)[:100]}...")
+            return False
+
+def install_package_quick(package):
+    """Versión rápida de instalación con timeout reducido"""
+    try:
+        package_name = package.split('==')[0].split('[')[0]
+        __import__(package_name)
+        print(f"OK - {package} ya está instalado")
+        return True
+    except ImportError:
+        try:
+            print(f"Instalando {package}...", end='', flush=True)
+            result = subprocess.run(
+                [sys.executable, "-m", "pip", "install", package],
+                capture_output=True,
+                text=True,
+                timeout=60  # Timeout más corto para opcionales
+            )
+            if result.returncode == 0:
+                print(" OK")
+                return True
+            else:
+                print(" ERROR")
+                return False
+        except subprocess.TimeoutExpired:
+            print(" TIMEOUT")
+            return False
+        except Exception:
+            print(" ERROR")
             return False
 
 def setup_environment():
     """Configura el ambiente completo del proyecto"""
     
-    # Lista de paquetes requeridos
-    required_packages = [
+    print("=== CONFIGURACION DEL AMBIENTE ===")
+    print("Tiempo estimado: 2-5 minutos")
+    print()
+    
+    # Lista de paquetes ESENCIALES (reducida para velocidad)
+    essential_packages = [
         "pandas>=1.3.0",
         "numpy>=1.21.0", 
         "scikit-learn>=1.0.0",
         "matplotlib>=3.4.0",
         "seaborn>=0.11.0",
-        "plotly>=5.0.0",
         "nltk>=3.7",
-        "spacy>=3.4.0",
-        "transformers>=4.20.0",
-        "torch>=1.12.0",
-        "datasets>=2.0.0",
-        "accelerate>=0.20.0",
         "textblob>=0.17.0",
-        "wordcloud>=1.8.0",
         "tqdm>=4.64.0"
     ]
+    
+    # Lista de paquetes OPCIONALES (solo si hay tiempo)
+    optional_packages = [
+        "plotly>=5.0.0",
+        "spacy>=3.4.0",
+        "wordcloud>=1.8.0"
+    ]
 
-    print("=== CONFIGURACIÓN DEL AMBIENTE ===")
-    print("Instalando paquetes necesarios...")
+    print(f"PASO 1/3: Instalando {len(essential_packages)} paquetes esenciales...")
+    success_count = 0
+    
+    # Instalar paquetes esenciales
+    for i, package in enumerate(essential_packages, 1):
+        print(f"  [{i}/{len(essential_packages)}] ", end='', flush=True)
+        if install_package(package):
+            success_count += 1
+    
+    print(f"\nPaquetes esenciales: {success_count}/{len(essential_packages)} instalados")
 
-    # Instalar paquetes
-    for package in tqdm(required_packages, desc="Instalando paquetes"):
-        install_package(package)
+    print(f"\nPASO 2/3: Instalando {len(optional_packages)} paquetes opcionales...")
+    optional_success = 0
+    
+    # Instalar paquetes opcionales (con timeouts más cortos)
+    for i, package in enumerate(optional_packages, 1):
+        print(f"  [{i}/{len(optional_packages)}] ", end='', flush=True)
+        if install_package_quick(package):
+            optional_success += 1
+    
+    print(f"\nPaquetes opcionales: {optional_success}/{len(optional_packages)} instalados")
 
-    print("\n=== DESCARGANDO MODELOS DE NLP ===")
+    print("\nPASO 3/3: Configurando modelos de NLP...")
 
-    # Descargar datos de NLTK
+    # Descargar datos de NLTK (esenciales)
     try:
         import nltk
-        nltk_data = ['punkt', 'stopwords', 'vader_lexicon', 'wordnet', 'omw-1.4']
-        for data in tqdm(nltk_data, desc="Descargando datos NLTK"):
+        print("  Descargando datos NLTK...", end='', flush=True)
+        essential_nltk = ['punkt', 'stopwords', 'vader_lexicon']
+        for data in essential_nltk:
             nltk.download(data, quiet=True)
-        print("✓ Datos NLTK descargados")
+        print(" OK")
     except Exception as e:
-        print(f"Error descargando NLTK: {e}")
+        print(f" ERROR: {str(e)[:50]}...")
 
-    # Descargar modelo de spaCy para inglés
+    # Verificar spaCy (opcional)
     try:
-        subprocess.check_call([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-        print("✓ Modelo spaCy en_core_web_sm descargado")
-    except Exception as e:
-        print(f"Error descargando spaCy: {e}")
+        import spacy
+        print("  Verificando spaCy...", end='', flush=True)
+        spacy.load("en_core_web_sm")  # Solo verificar que carga
+        print(" OK")
+    except Exception:
+        print(" No disponible (se usará NLTK)")
 
+    print("\nCONFIGURACION COMPLETADA")
+    print("=" * 40)
     return True
 
 def download_transformer_models():

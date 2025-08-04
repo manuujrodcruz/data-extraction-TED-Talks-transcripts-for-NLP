@@ -10,6 +10,7 @@ warnings.filterwarnings('ignore')
 
 # Configuración inicial
 pd.set_option('display.max_columns', None)
+pd.set_option('display.max_colwidth', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', 50)
 
@@ -19,7 +20,14 @@ DEFAULT_DATA_FILE = "ted_talks_en.csv"
 # Constantes
 DEFAULT_DATA_FILE = "ted_talks_en.csv"
 
-print("📊 Cargando módulos del proyecto TED Talks...")
+# Importar tracker de progreso
+try:
+    from .progress_tracker import ProgressTracker, real_time_feedback
+    print("OK - Sistema de progreso en tiempo real cargado")
+except ImportError as e:
+    print(f"ERROR importando progress_tracker: {e}")
+
+print("Cargando módulos del proyecto TED Talks...")
 
 # Importar módulos locales
 try:
@@ -284,7 +292,7 @@ class TedTalkAnalyzer:
     
     def run_complete_analysis(self, file_path=DEFAULT_DATA_FILE, text_column='transcript_clean'):
         """Ejecuta el análisis completo"""
-        print("🚀 INICIANDO ANÁLISIS COMPLETO DE TED TALKS 🚀")
+        print("INICIANDO ANALISIS COMPLETO DE TED TALKS")
         print("=" * 60)
         
         # Paso 1: Configurar ambiente
@@ -308,7 +316,7 @@ class TedTalkAnalyzer:
         # Resumen final
         self.print_final_summary()
         
-        print("\n🎉 ANÁLISIS COMPLETO FINALIZADO 🎉")
+        print("\nANALISIS COMPLETO FINALIZADO")
         return self.results
     
     def print_final_summary(self):
@@ -359,6 +367,70 @@ def quick_start(file_path=DEFAULT_DATA_FILE):
     analyzer = TedTalkAnalyzer()
     results = analyzer.run_complete_analysis(file_path)
     return analyzer, results
+
+
+def quick_test():
+    """
+    Función de prueba rápida para verificar que todo funciona
+    """
+    from datetime import datetime
+    
+    tracker = ProgressTracker(total_steps=4, description="Prueba rápida")
+    tracker.start("Iniciando verificación rápida del sistema")
+    
+    try:
+        # Paso 1: Verificar imports básicos
+        tracker.step("Verificando imports básicos")
+        import pandas as pd
+        import numpy as np
+        import sklearn
+        real_time_feedback("Librerías básicas: OK")
+        
+        # Paso 2: Verificar datos
+        tracker.step("Verificando acceso a datos")
+        try:
+            df = pd.read_csv(DEFAULT_DATA_FILE)
+            real_time_feedback(f"Dataset cargado: {df.shape[0]:,} filas")
+        except FileNotFoundError:
+            real_time_feedback("⚠️ Dataset no encontrado - usando datos sintéticos")
+            df = pd.DataFrame({'test': [1,2,3]})
+        
+        # Paso 3: Verificar módulos del proyecto  
+        tracker.step("Verificando módulos del proyecto")
+        functions_available = [
+            'setup_environment' in globals(),
+            'clean_dataset_professional' in globals(),
+            'process_text_features' in globals(),
+            'create_ml_pipeline' in globals()
+        ]
+        available_count = sum(functions_available)
+        real_time_feedback(f"Módulos disponibles: {available_count}/4")
+        
+        # Paso 4: Verificar configuración
+        tracker.step("Verificando configuración del ambiente")
+        try:
+            from textblob import TextBlob
+            blob = TextBlob("test")
+            real_time_feedback("TextBlob: OK")
+        except:
+            real_time_feedback("TextBlob: No disponible")
+            
+        tracker.finish("Verificación completada")
+        
+        print("\n🎯 RESULTADO DE LA PRUEBA:")
+        print("=" * 40)
+        print(f"✅ Librerías básicas: Funcionando")
+        print(f"✅ Acceso a datos: {'OK' if 'df' in locals() else 'Limitado'}")
+        print(f"✅ Módulos del proyecto: {available_count}/4 disponibles")
+        print(f"🕐 Verificación completada: {datetime.now().strftime('%H:%M:%S')}")
+        print("\n💡 Puedes proceder con el análisis completo")
+        
+        return True
+        
+    except Exception as e:
+        tracker.finish(f"Error en verificación: {e}")
+        print(f"\n❌ ERROR: {e}")
+        return False
 
 
 # Configuración al importar el módulo

@@ -7,6 +7,7 @@ import numpy as np
 import re
 from sklearn.preprocessing import LabelEncoder
 from collections import Counter
+from .progress_tracker import ProgressTracker, real_time_feedback
 
 
 def clean_text(text):
@@ -123,25 +124,30 @@ def clean_dataset_professional(df):
     df_clean = df.copy()
     cleaning_log = []
     
-    print("=== INICIANDO PIPELINE DE LIMPIEZA ===")
-    print(f"Dataset original: {df_clean.shape[0]} filas x {df_clean.shape[1]} columnas")
+    # Inicializar tracker de progreso
+    tracker = ProgressTracker(total_steps=4, description="Limpieza de datos")
+    tracker.start("Iniciando limpieza profesional de datos")
+    
+    real_time_feedback(f"Dataset original: {df_clean.shape[0]} filas x {df_clean.shape[1]} columnas")
     
     # 1. ELIMINACIÓN DE VALORES ATÍPICOS USANDO IQR
-    print("\n1. ELIMINACIÓN DE OUTLIERS EN 'VIEWS' USANDO MÉTODO IQR")
+    tracker.step("Eliminando outliers con método IQR")
     
     if 'views' in df_clean.columns:
+        print("   📊 Analizando distribución de 'views'...")
         df_clean, outliers_count = remove_outliers_iqr(df_clean, 'views')
         cleaning_log.append(f"Eliminados {outliers_count} outliers en 'views'")
-        print(f"   ✓ Dataset después de eliminar outliers: {df_clean.shape[0]} filas")
+        real_time_feedback(f"Dataset después de eliminar outliers: {df_clean.shape[0]} filas")
     
     # 2. LIMPIEZA DE DATOS TEXTUALES
-    print("\n2. LIMPIEZA DE DATOS TEXTUALES")
+    tracker.step("Limpiando datos textuales")
     
     text_columns = ['title', 'description', 'transcript', 'speaker', 'main_speaker']
+    processed_columns = 0
     
     for col in text_columns:
         if col in df_clean.columns:
-            print(f"   Procesando columna: {col}")
+            real_time_feedback(f"Procesando columna: {col}")
             
             # Convertir a string y manejar nulos
             df_clean[col] = df_clean[col].astype(str)
@@ -158,25 +164,31 @@ def clean_dataset_professional(df):
             print(f"     - Longitud promedio: {avg_length:.1f} caracteres")
             
             cleaning_log.append(f"Limpiado columna {col}: {null_count} valores vacíos")
+            processed_columns += 1
+    
+    real_time_feedback(f"Procesadas {processed_columns} columnas de texto")
     
     # 3. CREACIÓN DE CATEGORÍAS DE POPULARIDAD
-    print("\n3. CLASIFICACIÓN DE POPULARIDAD")
+    tracker.step("Creando categorías de popularidad")
     
     if 'views' in df_clean.columns:
+        print("   📈 Analizando distribución de popularidad...")
         df_clean, _ = create_popularity_categories(df_clean)
         cleaning_log.append("Creadas categorías de popularidad")
     
     # 4. VALIDACIÓN FINAL
-    print("\n4. VALIDACIÓN DEL DATASET LIMPIO")
+    tracker.step("Validando dataset limpio")
     
-    print(f"   - Dimensiones finales: {df_clean.shape[0]} filas x {df_clean.shape[1]} columnas")
-    print(f"   - Filas eliminadas: {len(df) - len(df_clean)} ({((len(df) - len(df_clean))/len(df)*100):.2f}%)")
+    real_time_feedback(f"Dimensiones finales: {df_clean.shape[0]} filas x {df_clean.shape[1]} columnas")
+    rows_removed = len(df) - len(df_clean)
+    removal_percentage = (rows_removed/len(df)*100)
+    real_time_feedback(f"Filas eliminadas: {rows_removed} ({removal_percentage:.2f}%)")
     
     # Verificar calidad de datos
     quality_score = calculate_data_quality(df_clean)
-    print(f"   - Puntuación de calidad: {quality_score:.2f}/10")
+    real_time_feedback(f"Puntuación de calidad: {quality_score:.2f}/10")
     
-    print("\n✓ PIPELINE DE LIMPIEZA COMPLETADO")
+    tracker.finish("Limpieza de datos completada")
     
     return df_clean, cleaning_log
 
