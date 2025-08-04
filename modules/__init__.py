@@ -17,9 +17,6 @@ pd.set_option('display.max_colwidth', 50)
 # Constante para archivo de datos
 DEFAULT_DATA_FILE = "ted_talks_en.csv"
 
-# Constantes
-DEFAULT_DATA_FILE = "ted_talks_en.csv"
-
 # Importar tracker de progreso
 try:
     from .progress_tracker import ProgressTracker, real_time_feedback
@@ -35,7 +32,6 @@ try:
         setup_environment, 
         download_transformer_models, 
         check_device,
-        get_environment_info
     )
     print("✓ Módulo de configuración del ambiente cargado")
 except ImportError as e:
@@ -44,11 +40,6 @@ except ImportError as e:
 try:
     from .data_cleaner import (
         clean_dataset_professional,
-        clean_text,
-        remove_outliers_iqr,
-        create_popularity_categories,
-        calculate_data_quality,
-        get_data_summary,
         validate_data_quality
     )
     print("✓ Módulo de limpieza de datos cargado")
@@ -58,9 +49,6 @@ except ImportError as e:
 try:
     from .nlp_processor import (
         load_nlp_models,
-        extract_named_entities,
-        analyze_sentiment,
-        extract_text_features,
         process_text_features,
         create_word_frequency_analysis
     )
@@ -101,6 +89,7 @@ class TedTalkAnalyzer:
     def __init__(self):
         self.df_original = None
         self.df_clean = None
+        self.df_processed = None
         self.nlp_models = None
         self.ml_classifier = None
         self.results = {}
@@ -191,7 +180,7 @@ class TedTalkAnalyzer:
         
         try:
             # Procesar características de texto
-            self.df_clean = process_text_features(
+            self.df_processed = process_text_features(
                 self.df_clean, 
                 text_column=text_column, 
                 nlp_models=self.nlp_models
@@ -199,7 +188,7 @@ class TedTalkAnalyzer:
             
             # Análisis de frecuencia de palabras
             word_frequencies = create_word_frequency_analysis(
-                self.df_clean, 
+                self.df_processed, 
                 text_column, 
                 stop_words=self.nlp_models['stop_words'] if self.nlp_models else None
             )
@@ -207,12 +196,12 @@ class TedTalkAnalyzer:
             self.results['nlp_processing'] = {
                 'text_column': text_column,
                 'word_frequencies': word_frequencies,
-                'features_added': [col for col in self.df_clean.columns if 
+                'features_added': [col for col in self.df_processed.columns if 
                                  col.startswith(('sentiment_', 'text_', 'person_', 'org_', 'gpe_'))]
             }
             
             print("✓ Características NLP procesadas correctamente")
-            return self.df_clean
+            return self.df_processed
             
         except Exception as e:
             print(f"✗ Error procesando NLP: {e}")
@@ -272,7 +261,7 @@ class TedTalkAnalyzer:
         try:
             # Crear y ejecutar pipeline de ML
             self.ml_classifier, ml_results = create_ml_pipeline(
-                self.df_clean,
+                self.df_processed,
                 text_column=text_column,
                 target_column=target_column
             )
