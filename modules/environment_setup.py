@@ -121,10 +121,11 @@ def setup_environment():
     try:
         import nltk
         print("  Descargando datos NLTK...", end='', flush=True)
-        essential_nltk = ['punkt', 'stopwords', 'vader_lexicon']
+        essential_nltk = ['punkt_tab', 'stopwords', 'vader_lexicon']
         for data in essential_nltk:
-            nltk.download(data, quiet=True)
-        print(" OK")
+            nltk.download(data)
+        os.environ['NLTK_DATA'] = './nltk_data'  # Asegurar que NLTK use el directorio local
+        print("OK")
     except Exception as e:
         print(f" ERROR: {str(e)[:50]}...")
 
@@ -141,48 +142,6 @@ def setup_environment():
     print("=" * 40)
     return True
 
-def download_transformer_models():
-    """Descarga y verifica modelos transformer"""
-    print("=== DESCARGANDO MODELOS TRANSFORMER ===")
-    
-    try:
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-        
-        # Lista de modelos a precargar
-        transformer_models = [
-            "distilbert-base-uncased",
-            "roberta-base", 
-            "distilbert-base-uncased-finetuned-sst-2-english"
-        ]
-        
-        downloaded_models = {}
-        
-        for model_name in transformer_models:
-            try:
-                print(f"Precargando {model_name}...")
-                tokenizer = AutoTokenizer.from_pretrained(model_name)
-                model = AutoModelForSequenceClassification.from_pretrained(model_name)
-                
-                downloaded_models[model_name] = {
-                    'tokenizer': tokenizer,
-                    'model': model,
-                    'status': 'success'
-                }
-                
-                print(f"✓ {model_name} descargado y cacheado")
-            except Exception as e:
-                print(f"⚠ Error con {model_name}: {e}")
-                downloaded_models[model_name] = {
-                    'status': 'error',
-                    'error': str(e)
-                }
-        
-        print("✓ Modelos transformer listos")
-        return downloaded_models
-        
-    except Exception as e:
-        print(f"⚠ Error configurando transformers: {e}")
-        return {}
 
 def check_device():
     """Verifica disponibilidad de GPU"""

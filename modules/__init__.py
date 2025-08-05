@@ -30,21 +30,20 @@ print("Cargando módulos del proyecto TED Talks...")
 try:
     from .environment_setup import (
         setup_environment, 
-        download_transformer_models, 
         check_device,
     )
-    print("✓ Módulo de configuración del ambiente cargado")
+    print("Módulo de configuración del ambiente cargado")
 except ImportError as e:
-    print(f"⚠ Error importando environment_setup: {e}")
+    print(f"Error importando environment_setup: {e}")
 
 try:
     from .data_cleaner import (
         clean_dataset_professional,
         validate_data_quality
     )
-    print("✓ Módulo de limpieza de datos cargado")
+    print("Módulo de limpieza de datos cargado")
 except ImportError as e:
-    print(f"⚠ Error importando data_cleaner: {e}")
+    print(f"Error importando data_cleaner: {e}")
 
 try:
     from .nlp_processor import (
@@ -52,9 +51,9 @@ try:
         process_text_features,
         create_word_frequency_analysis
     )
-    print("✓ Módulo de procesamiento NLP cargado")
+    print("Módulo de procesamiento NLP cargado")
 except ImportError as e:
-    print(f"⚠ Error importando nlp_processor: {e}")
+    print(f"Error importando nlp_processor: {e}")
 
 try:
     from .visualizer import (
@@ -67,18 +66,18 @@ try:
         create_interactive_plots,
         print_summary_statistics
     )
-    print("✓ Módulo de visualización cargado")
+    print("Módulo de visualización cargado")
 except ImportError as e:
-    print(f"⚠ Error importando visualizer: {e}")
+    print(f"Error importando visualizer: {e}")
 
 try:
     from .ml_models import (
         TedTalkClassifier,
         create_ml_pipeline
     )
-    print("✓ Módulo de machine learning cargado")
+    print("Módulo de machine learning cargado")
 except ImportError as e:
-    print(f"⚠ Error importando ml_models: {e}")
+    print(f"Error importando ml_models: {e}")
 
 
 class TedTalkAnalyzer:
@@ -87,7 +86,7 @@ class TedTalkAnalyzer:
     """
     
     def __init__(self):
-        self.df_original = None
+        self.data = None
         self.df_clean = None
         self.df_processed = None
         self.nlp_models = None
@@ -99,16 +98,16 @@ class TedTalkAnalyzer:
         print(f"\n=== CARGANDO DATASET: {file_path} ===")
         
         try:
-            self.df_original = pd.read_csv(file_path)
-            print(f"✓ Dataset cargado: {self.df_original.shape[0]} filas x {self.df_original.shape[1]} columnas")
+            self.data = pd.read_csv(file_path)
+            print(f"✓ Dataset cargado: {self.data.shape[0]} filas x {self.data.shape[1]} columnas")
             
             # Mostrar información básica
             print("\nColumnas disponibles:")
-            for i, col in enumerate(self.df_original.columns, 1):
+            for i, col in enumerate(self.data.columns, 1):
                 print(f"{i:2d}. {col}")
             
             self.results['data_loaded'] = True
-            return self.df_original
+            return self.data
             
         except Exception as e:
             print(f"✗ Error cargando dataset: {e}")
@@ -123,9 +122,6 @@ class TedTalkAnalyzer:
             # Configurar ambiente
             setup_environment()
             
-            # Descargar modelos transformer
-            transformer_models = download_transformer_models()
-            
             # Verificar dispositivo
             device = check_device()
             
@@ -134,7 +130,6 @@ class TedTalkAnalyzer:
             
             self.results['environment_setup'] = True
             self.results['device'] = device
-            self.results['transformer_models'] = transformer_models
             
             print("✓ Ambiente configurado correctamente")
             
@@ -144,26 +139,26 @@ class TedTalkAnalyzer:
     
     def clean_data(self):
         """Limpia y prepara los datos"""
-        if self.df_original is None:
-            print("⚠ Primero debes cargar los datos")
+        if self.data is None:
+            print("Primero debes cargar los datos")
             return None
         
         print("\n=== LIMPIANDO DATOS ===")
         
         try:
-            self.df_clean, cleaning_log = clean_dataset_professional(self.df_original)
+            self.df_clean, cleaning_log = clean_dataset_professional(self.data)
             
             # Validar calidad
             quality_results = validate_data_quality(self.df_clean)
             
             self.results['data_cleaning'] = {
-                'original_shape': self.df_original.shape,
+                'original_shape': self.data.shape,
                 'clean_shape': self.df_clean.shape,
                 'cleaning_log': cleaning_log,
                 'quality_results': quality_results
             }
             
-            print("✓ Datos limpiados correctamente")
+            print("Datos limpiados correctamente")
             return self.df_clean
             
         except Exception as e:
@@ -173,7 +168,7 @@ class TedTalkAnalyzer:
     def process_nlp_features(self, text_column='transcript_clean'):
         """Procesa características de NLP"""
         if self.df_clean is None:
-            print("⚠ Primero debes limpiar los datos")
+            print("Primero debes limpiar los datos")
             return None
         
         print("\n=== PROCESANDO CARACTERÍSTICAS NLP ===")
@@ -210,7 +205,7 @@ class TedTalkAnalyzer:
     def create_visualizations(self):
         """Crea todas las visualizaciones"""
         if self.df_clean is None:
-            print("⚠ Primero debes procesar los datos")
+            print("Primero debes procesar los datos")
             return
         
         print("\n=== CREANDO VISUALIZACIONES ===")
@@ -253,7 +248,7 @@ class TedTalkAnalyzer:
     def train_models(self, text_column='transcript_clean', target_column='popularity_numeric'):
         """Entrena modelos de machine learning"""
         if self.df_clean is None:
-            print("⚠ Primero debes procesar los datos")
+            print("Primero debes procesar los datos")
             return None
         
         print("\n=== ENTRENANDO MODELOS DE MACHINE LEARNING ===")
@@ -311,23 +306,23 @@ class TedTalkAnalyzer:
     def print_final_summary(self):
         """Imprime un resumen final del análisis"""
         print("\n" + "=" * 60)
-        print("📋 RESUMEN FINAL DEL ANÁLISIS")
+        print("RESUMEN FINAL DEL ANÁLISIS")
         print("=" * 60)
         
         if self.results.get('data_loaded'):
             original_shape = self.results['data_cleaning']['original_shape']
             clean_shape = self.results['data_cleaning']['clean_shape']
-            print(f"📊 Datos procesados: {original_shape[0]} → {clean_shape[0]} filas")
-            print(f"📈 Calidad de datos: {self.results['data_cleaning']['quality_results']['quality_score']:.2f}/10")
+            print(f"Datos procesados: {original_shape[0]} → {clean_shape[0]} filas")
+            print(f"Calidad de datos: {self.results['data_cleaning']['quality_results']['quality_score']:.2f}/10")
         
         if self.results.get('nlp_processing'):
             features_count = len(self.results['nlp_processing']['features_added'])
-            print(f"🔤 Características NLP creadas: {features_count}")
+            print(f"Características NLP creadas: {features_count}")
         
         if self.results.get('machine_learning'):
             models_count = len(self.results['machine_learning']['models_trained'])
             best_model_info = self.results['machine_learning']['best_model']
-            print(f"🤖 Modelos entrenados: {models_count}")
+            print(f"Modelos entrenados: {models_count}")
             if best_model_info[0]:
                 print(f"🏆 Mejor modelo: {best_model_info[0]} (F1: {best_model_info[2]:.4f})")
         
@@ -341,12 +336,12 @@ class TedTalkAnalyzer:
             'machine_learning' in self.results
         ])
         
-        print(f"✅ Pasos completados: {steps_completed}/6")
+        print(f"Pasos completados: {steps_completed}/6")
         
         if steps_completed == 6:
-            print("🎯 ¡Análisis 100% completo!")
+            print("¡Análisis 100% completo!")
         else:
-            print("⚠ Algunos pasos no se completaron correctamente")
+            print("Algunos pasos no se completaron correctamente")
 
 
 def quick_start(file_path=DEFAULT_DATA_FILE):
@@ -381,7 +376,7 @@ def quick_test():
             df = pd.read_csv(DEFAULT_DATA_FILE)
             real_time_feedback(f"Dataset cargado: {df.shape[0]:,} filas")
         except FileNotFoundError:
-            real_time_feedback("⚠️ Dataset no encontrado - usando datos sintéticos")
+            real_time_feedback(" Dataset no encontrado - usando datos sintéticos")
             df = pd.DataFrame({'test': [1,2,3]})
         
         # Paso 3: Verificar módulos del proyecto  
@@ -406,25 +401,25 @@ def quick_test():
             
         tracker.finish("Verificación completada")
         
-        print("\n🎯 RESULTADO DE LA PRUEBA:")
+        print("\n RESULTADO DE LA PRUEBA:")
         print("=" * 40)
-        print(f"✅ Librerías básicas: Funcionando")
-        print(f"✅ Acceso a datos: {'OK' if 'df' in locals() else 'Limitado'}")
-        print(f"✅ Módulos del proyecto: {available_count}/4 disponibles")
-        print(f"🕐 Verificación completada: {datetime.now().strftime('%H:%M:%S')}")
-        print("\n💡 Puedes proceder con el análisis completo")
+        print(f" Librerías básicas: Funcionando")
+        print(f" Acceso a datos: {'OK' if 'df' in locals() else 'Limitado'}")
+        print(f" Módulos del proyecto: {available_count}/4 disponibles")
+        print(f" Verificación completada: {datetime.now().strftime('%H:%M:%S')}")
+        print("\n Puedes proceder con el análisis completo")
         
         return True
         
     except Exception as e:
         tracker.finish(f"Error en verificación: {e}")
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n ERROR: {e}")
         return False
 
 
 # Configuración al importar el módulo
-print("🎯 Módulos TED Talks cargados correctamente")
-print("📚 Uso recomendado:")
+print(" Módulos TED Talks cargados correctamente")
+print(" Uso recomendado:")
 print("   from modules import quick_start")
 print("   analyzer, results = quick_start('ted_talks_en.csv')")
 print("=" * 50)
