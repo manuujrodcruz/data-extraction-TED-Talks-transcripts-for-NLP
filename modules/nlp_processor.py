@@ -98,45 +98,77 @@ def count_entity_types(entities_dict):
     return counts
 
 
+
 def analyze_sentiment(text):
     """
-    Analiza el sentimiento del texto usando TextBlob
+    Análisis híbrido TextBlob + VADER para máxima precisión
+    Combina lo mejor de ambos para TED Talks
     """
     if pd.isna(text) or text == '':
-        return {
-            'polarity': 0.0,
-            'subjectivity': 0.0,
-            'sentiment_label': 'neutral'
-        }
+        return _get_empty_sentiment()
     
     try:
+        # TextBlob: Para análisis general
         blob = TextBlob(text)
-        sentiment = blob.sentiment
-        polarity = sentiment.polarity
-        subjectivity = sentiment.subjectivity
+        tb_sentiment = blob.sentiment
         
-        # Clasificar sentimiento
-        if polarity > 0.1:
-            sentiment_label = 'positive'
-        elif polarity < -0.1:
-            sentiment_label = 'negative'
+        # VADER: Para texto informal y énfasis
+        from nltk.sentiment import SentimentIntensityAnalyzer
+        vader = SentimentIntensityAnalyzer()
+        vader_scores = vader.polarity_scores(text)
+        
+        # Combinar ambos análisis
+        combined_polarity = (tb_sentiment.polarity + vader_scores['compound']) / 2
+        combined_subjectivity = tb_sentiment.subjectivity
+        
+        # Usar VADER para clasificación (mejor con texto hablado)
+        if vader_scores['compound'] >= 0.5:
+            sentiment_label = 'muy_positivo'
+        elif vader_scores['compound'] >= 0.1:
+            sentiment_label = 'positivo'
+        elif vader_scores['compound'] <= -0.5:
+            sentiment_label = 'muy_negativo'
+        elif vader_scores['compound'] <= -0.1:
+            sentiment_label = 'negativo'
         else:
             sentiment_label = 'neutral'
         
         return {
-            'polarity': polarity,
-            'subjectivity': subjectivity,
-            'sentiment_label': sentiment_label
+            'sentiment_polarity': combined_polarity,
+            'sentiment_subjectivity': combined_subjectivity,
+            'sentiment_label': sentiment_label,
+            'sentiment_vader_compound': vader_scores['compound'],
+            'sentiment_vader_positive': vader_scores['pos'],
+            'sentiment_vader_negative': vader_scores['neg'],
+            'sentiment_vader_neutral': vader_scores['neu'],
+            'sentiment_agreement': _calculate_agreement(tb_sentiment.polarity, vader_scores['compound'])
         }
     
     except Exception as e:
-        print(f"Error analizando sentimiento: {e}")
-        return {
-            'polarity': 0.0,
-            'subjectivity': 0.0,
-            'sentiment_label': 'neutral'
-        }
+        print(f"Error en análisis híbrido: {e}")
+        return _get_empty_sentiment()
 
+def _calculate_agreement(textblob_score, vader_score):
+    """Calcula qué tan de acuerdo están ambos algoritmos"""
+    if (textblob_score > 0 and vader_score > 0) or \
+       (textblob_score < 0 and vader_score < 0) or \
+       (abs(textblob_score) < 0.1 and abs(vader_score) < 0.1):
+        return 1.0  # Están de acuerdo
+    else:
+        return 0.0  # Desacuerdo
+
+def _get_empty_sentiment():
+    """Valores por defecto para textos vacíos"""
+    return {
+        'sentiment_polarity': 0.0,
+        'sentiment_subjectivity': 0.0,
+        'sentiment_label': 'neutral',
+        'sentiment_vader_compound': 0.0,
+        'sentiment_vader_positive': 0.0,
+        'sentiment_vader_negative': 0.0,
+        'sentiment_vader_neutral': 1.0,
+        'sentiment_agreement': 1.0
+    }
 
 def extract_text_features(text, stop_words=None):
     """
