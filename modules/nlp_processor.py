@@ -62,7 +62,7 @@ def extract_named_entities(text, nlp_model):
         }
     
     # Limitar texto para eficiencia
-    text_limited = text[:1000000] if len(text) > 1000000 else text
+    text_limited = text[:1_000_000] if len(text) > 1_000_000 else text
     doc = nlp_model(text_limited)
     
     entities = {
@@ -111,8 +111,9 @@ def analyze_sentiment(text):
     
     try:
         blob = TextBlob(text)
-        polarity = blob.sentiment.polarity
-        subjectivity = blob.sentiment.subjectivity
+        sentiment = blob.sentiment
+        polarity = sentiment.polarity
+        subjectivity = sentiment.subjectivity
         
         # Clasificar sentimiento
         if polarity > 0.1:
@@ -224,7 +225,7 @@ def process_text_features(df, text_column='transcript_clean', nlp_models=None):
     real_time_feedback(f"Procesando columna: {text_column}")
     
     if text_column not in df.columns:
-        print(f"⚠ Columna {text_column} no encontrada")
+        print(f"Columna {text_column} no encontrada")
         return df
     
     # 1. CARGAR MODELOS
