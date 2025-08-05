@@ -133,20 +133,34 @@ def analyze_sentiment(text):
         else:
             sentiment_label = 'neutral'
         
+        # RETORNAR CON CLAVES LIMPIAS (sin prefijo sentiment_)
         return {
-            'sentiment_polarity': combined_polarity,
-            'sentiment_subjectivity': combined_subjectivity,
-            'sentiment_label': sentiment_label,
-            'sentiment_vader_compound': vader_scores['compound'],
-            'sentiment_vader_positive': vader_scores['pos'],
-            'sentiment_vader_negative': vader_scores['neg'],
-            'sentiment_vader_neutral': vader_scores['neu'],
-            'sentiment_agreement': _calculate_agreement(tb_sentiment.polarity, vader_scores['compound'])
+            'polarity': combined_polarity,                    # ✓
+            'subjectivity': combined_subjectivity,            # ✓
+            'label': sentiment_label,                         # ✓
+            'vader_compound': vader_scores['compound'],       # ✓
+            'vader_positive': vader_scores['pos'],            # ✓
+            'vader_negative': vader_scores['neg'],            # ✓
+            'vader_neutral': vader_scores['neu'],             # ✓
+            'agreement': _calculate_agreement(tb_sentiment.polarity, vader_scores['compound'])  # ✓
         }
     
     except Exception as e:
         print(f"Error en análisis híbrido: {e}")
         return _get_empty_sentiment()
+
+def _get_empty_sentiment():
+    """Valores por defecto para textos vacíos"""
+    return {
+        'polarity': 0.0,
+        'subjectivity': 0.0,
+        'label': 'neutral',
+        'vader_compound': 0.0,
+        'vader_positive': 0.0,
+        'vader_negative': 0.0,
+        'vader_neutral': 1.0,
+        'agreement': 1.0
+    }
 
 def _calculate_agreement(textblob_score, vader_score):
     """Calcula qué tan de acuerdo están ambos algoritmos"""
@@ -157,18 +171,6 @@ def _calculate_agreement(textblob_score, vader_score):
     else:
         return 0.0  # Desacuerdo
 
-def _get_empty_sentiment():
-    """Valores por defecto para textos vacíos"""
-    return {
-        'sentiment_polarity': 0.0,
-        'sentiment_subjectivity': 0.0,
-        'sentiment_label': 'neutral',
-        'sentiment_vader_compound': 0.0,
-        'sentiment_vader_positive': 0.0,
-        'sentiment_vader_negative': 0.0,
-        'sentiment_vader_neutral': 1.0,
-        'sentiment_agreement': 1.0
-    }
 
 def extract_text_features(text, stop_words=None):
     """
@@ -308,7 +310,7 @@ def _process_sentiments(df, text_column):
     sentiment_df = pd.DataFrame(sentiment_results.tolist())
     for col in sentiment_df.columns:
         df[f'sentiment_{col}'] = sentiment_df[col]
-    
+
     return df
 
 

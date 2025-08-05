@@ -212,32 +212,32 @@ class TedTalkAnalyzer:
         
         try:
             # Resumen de estadísticas
-            print_summary_statistics(self.df_clean)
+            print_summary_statistics(self.df_processed)
             
             # Visualizaciones principales
-            create_data_overview_plots(self.df_clean)
+            create_data_overview_plots(self.df_processed)
             
             # Matriz de correlación
-            numeric_columns = self.df_clean.select_dtypes(include=[np.number]).columns.tolist()
-            create_correlation_heatmap(self.df_clean, numeric_columns)
-            
+            numeric_columns = self.df_processed.select_dtypes(include=[np.number]).columns.tolist()
+            create_correlation_heatmap(self.df_processed, numeric_columns)
+
             # Análisis de sentimientos
-            create_sentiment_analysis_plots(self.df_clean)
-            
+            create_sentiment_analysis_plots(self.df_processed)
+
             # Características textuales
-            create_text_features_plots(self.df_clean)
-            
+            create_text_features_plots(self.df_processed)
+
             # Análisis de entidades
-            create_entity_analysis_plots(self.df_clean)
+            create_entity_analysis_plots(self.df_processed)
             
             # Nube de palabras
-            if 'transcript_clean' in self.df_clean.columns:
-                create_wordcloud(self.df_clean['transcript_clean'], 
-                               title="Nube de Palabras - Transcripciones TED Talks")
+            if 'transcript_clean' in self.df_processed.columns:
+                create_wordcloud(self.df_processed['transcript_clean'],
+                                 title="Nube de Palabras - Transcripciones TED Talks")
             
             # Gráficos interactivos
-            create_interactive_plots(self.df_clean)
-            
+            create_interactive_plots(self.df_processed)
+
             self.results['visualizations'] = True
             print("✓ Visualizaciones creadas correctamente")
             
@@ -415,11 +415,3 @@ def quick_test():
         tracker.finish(f"Error en verificación: {e}")
         print(f"\n ERROR: {e}")
         return False
-
-
-# Configuración al importar el módulo
-print(" Módulos TED Talks cargados correctamente")
-print(" Uso recomendado:")
-print("   from modules import quick_start")
-print("   analyzer, results = quick_start('ted_talks_en.csv')")
-print("=" * 50)

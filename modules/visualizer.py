@@ -132,6 +132,7 @@ def create_sentiment_analysis_plots(df):
     
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle('Análisis de Sentimientos', fontsize=16, fontweight='bold')
+    print(df.columns.tolist())
     
     # 1. Distribución de Polaridad
     if 'sentiment_polarity' in df.columns:
