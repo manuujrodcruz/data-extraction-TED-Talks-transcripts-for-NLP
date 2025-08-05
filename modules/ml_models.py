@@ -5,7 +5,7 @@ Módulo para modelos de machine learning
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
@@ -27,6 +27,7 @@ class TedTalkClassifier:
         self.models = {}
         self.scalers = {}
         self.vectorizers = {}
+        self.encoders = {}
         self.feature_names = []
         self.results = {}
         
@@ -47,9 +48,9 @@ class TedTalkClassifier:
         text_features = [col for col in df.columns if col.startswith('text_')]
         numeric_features.extend(text_features)
         
-        # Características de sentimiento
+        # Características de sentimiento (solo numéricas)
         sentiment_features = [col for col in df.columns if col.startswith('sentiment_') 
-                            and col != 'sentiment_sentiment_label']
+                            and col not in ['sentiment_label', 'sentiment_sentiment_label']]
         numeric_features.extend(sentiment_features)
         
         # Características de entidades
@@ -63,8 +64,46 @@ class TedTalkClassifier:
         for feature in numeric_features:
             print(f"  - {feature}")
         
-        # Crear matriz de características
+        # Crear matriz de características numéricas
         x_numeric = df[numeric_features].fillna(0)
+        
+        # Identificar y codificar características categóricas
+        categorical_features = []
+        if 'sentiment_label' in df.columns:
+            categorical_features.append('sentiment_label')
+        
+        # Aplicar one-hot encoding a características categóricas
+        x_categorical = None
+        if categorical_features:
+            print(f"Aplicando one-hot encoding a {len(categorical_features)} características categóricas:")
+            for feature in categorical_features:
+                print(f"  - {feature}")
+            
+            # Crear DataFrame con características categóricas
+            categorical_data = df[categorical_features].fillna('unknown')
+            
+            # Aplicar one-hot encoding
+            from sklearn.preprocessing import OneHotEncoder
+            encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+            x_categorical_encoded = encoder.fit_transform(categorical_data)
+            
+            # Crear nombres de columnas para las características codificadas
+            categorical_feature_names = []
+            for i, feature in enumerate(categorical_features):
+                for category in encoder.categories_[i]:
+                    categorical_feature_names.append(f"{feature}_{category}")
+            
+            # Convertir a DataFrame
+            x_categorical = pd.DataFrame(
+                x_categorical_encoded, 
+                columns=categorical_feature_names, 
+                index=x_numeric.index
+            )
+            
+            print(f"One-hot encoding completado: {len(categorical_feature_names)} nuevas características")
+            
+            # Guardar el encoder para uso futuro
+            self.encoders = {'categorical': encoder, 'categorical_features': categorical_features}
         
         # Características de texto con TF-IDF
         x_text = None
@@ -85,16 +124,23 @@ class TedTalkClassifier:
             
             x_text = self.vectorizers['tfidf'].fit_transform(text_data)
             print(f"Matriz TF-IDF: {x_text.shape[0]} muestras x {x_text.shape[1]} características")
-        
-        # Combinar características
-        if x_text is not None:
+            
             # Convertir TF-IDF a DataFrame
             tfidf_feature_names = [f'tfidf_{i}' for i in range(x_text.shape[1])]
             x_text_df = pd.DataFrame(x_text.toarray(), columns=tfidf_feature_names, index=x_numeric.index)
-            
-            # Combinar
+        
+        # Combinar características
+        if x_text is not None and x_categorical is not None:
+            # Combinar numéricas, categóricas y TF-IDF
+            x_combined = pd.concat([x_numeric, x_categorical, x_text_df], axis=1)
+        elif x_text is not None:
+            # Combinar numéricas y TF-IDF
             x_combined = pd.concat([x_numeric, x_text_df], axis=1)
+        elif x_categorical is not None:
+            # Combinar numéricas y categóricas
+            x_combined = pd.concat([x_numeric, x_categorical], axis=1)
         else:
+            # Solo numéricas
             x_combined = x_numeric
         
         # Target
@@ -122,8 +168,9 @@ class TedTalkClassifier:
         print(f"Conjunto de entrenamiento: {x_train.shape[0]} muestras")
         print(f"Conjunto de prueba: {x_test.shape[0]} muestras")
         
-        # Escalar características numéricas
-        numeric_columns = [col for col in x.columns if not col.startswith('tfidf_')]
+        # Escalar características numéricas (excluir TF-IDF y características categóricas codificadas)
+        numeric_columns = [col for col in x.columns if not col.startswith('tfidf_') 
+                          and not any(col.startswith(f"{feat}_") for feat in self.encoders.get('categorical_features', []))]
         if numeric_columns:
             self.scalers['standard'] = StandardScaler()
             x_train[numeric_columns] = self.scalers['standard'].fit_transform(x_train[numeric_columns])
@@ -394,9 +441,36 @@ class TedTalkClassifier:
         
         model = self.models[model_name]
         
-        # Escalar si es necesario
+        # Aplicar transformaciones si es necesario
         x_scaled = x_new.copy()
-        numeric_columns = [col for col in x_new.columns if not col.startswith('tfidf_')]
+        
+        # Aplicar encoding categórico si existe
+        if 'categorical' in self.encoders:
+            categorical_features = self.encoders['categorical_features']
+            if any(col in x_new.columns for col in categorical_features):
+                encoder = self.encoders['categorical']
+                categorical_data = x_new[categorical_features].fillna('unknown')
+                x_categorical_encoded = encoder.transform(categorical_data)
+                
+                # Crear nombres de columnas para las características codificadas
+                categorical_feature_names = []
+                for i, feature in enumerate(categorical_features):
+                    for category in encoder.categories_[i]:
+                        categorical_feature_names.append(f"{feature}_{category}")
+                
+                # Agregar características codificadas
+                x_categorical_df = pd.DataFrame(
+                    x_categorical_encoded, 
+                    columns=categorical_feature_names, 
+                    index=x_scaled.index
+                )
+                x_scaled = pd.concat([x_scaled, x_categorical_df], axis=1)
+                
+                # Eliminar columnas categóricas originales
+                x_scaled = x_scaled.drop(columns=categorical_features, errors='ignore')
+        
+        # Escalar características numéricas
+        numeric_columns = [col for col in x_scaled.columns if not col.startswith('tfidf_') and not any(col.startswith(f"{feat}_") for feat in self.encoders.get('categorical_features', []))]
         if numeric_columns and 'standard' in self.scalers:
             x_scaled[numeric_columns] = self.scalers['standard'].transform(x_scaled[numeric_columns])
         
