@@ -199,7 +199,7 @@ class TedTalkAnalyzer:
             return self.df_processed
             
         except Exception as e:
-            print(f"✗ Error procesando NLP: {e}")
+            print(f"✗ Error procesando NLP: {e.with_traceback()}")
             return None
     
     def create_visualizations(self):
@@ -212,14 +212,14 @@ class TedTalkAnalyzer:
         
         try:
             # Resumen de estadísticas
-            print_summary_statistics(self.df_processed)
+            print_summary_statistics(self.df_clean)
             
             # Visualizaciones principales
-            create_data_overview_plots(self.df_processed)
+            create_data_overview_plots(self.df_clean)
             
             # Matriz de correlación
-            numeric_columns = self.df_processed.select_dtypes(include=[np.number]).columns.tolist()
-            create_correlation_heatmap(self.df_processed, numeric_columns)
+            numeric_columns = self.df_clean.select_dtypes(include=[np.number]).columns.tolist()
+            create_correlation_heatmap(self.df_clean, numeric_columns)
 
             # Análisis de sentimientos
             create_sentiment_analysis_plots(self.df_processed)

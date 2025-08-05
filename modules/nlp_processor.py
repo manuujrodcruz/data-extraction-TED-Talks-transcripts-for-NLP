@@ -372,7 +372,7 @@ def _show_feature_statistics(df):
         print(f"  Media: {polarity_stats['mean']:.3f}")
         print(f"  Rango: [{polarity_stats['min']:.3f}, {polarity_stats['max']:.3f}]")
         
-        sentiment_dist = df['sentiment_sentiment_label'].value_counts()
+        sentiment_dist = df['sentiment_label'].value_counts()
         print("Distribución de sentimientos:")
         for sentiment, count in sentiment_dist.items():
             percentage = (count / len(df)) * 100
